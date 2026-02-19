@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STRIKER FC – The Beautiful Game</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap');
+  
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  :root {
+    --green: #00e676;
+    --gold: #ffd600;
+    --red: #ff1744;
+    --blue: #2979ff;
+    --dark: #050a0f;
+    --darker: #020508;
+    --card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.1);
+  }
+
+  body { 
+    background: var(--darker); 
+    color: #fff; 
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    width: 100vw; height: 100vh;
+  }
+
+  #game-canvas { display: block; width: 100%; height: 100%; }
+
+  /* ═══════════════ SCREENS ═══════════════ */
+  .screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    background: var(--darker);
+    transition: opacity 0.4s;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* MAIN MENU */
+  #menu-screen {
+    background: radial-gradient(ellipse at 50% 120%, #0a2a0a 0%, #020508 60%);
+  }
+  .pitch-bg {
+    position: absolute; inset: 0;
+    background-image: 
+      repeating-linear-gradient(90deg, transparent, transparent 9%, rgba(255,255,255,0.03) 9%, rgba(255,255,255,0.03) 10%),
+      repeating-linear-gradient(0deg, transparent, transparent 9%, rgba(255,255,255,0.03) 9%, rgba(255,255,255,0.03) 10%);
+    background-size: 120px 120px;
+  }
+  .pitch-lines {
+    position: absolute; inset: 0;
+    border: 2px solid rgba(255,255,255,0.05);
+    border-radius: 50% / 20%;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(4rem, 10vw, 9rem);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, var(--green) 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    position: relative;
+    z-index: 1;
+    animation: logoIn 1s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .logo-sub {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.5em;
+    color: rgba(255,255,255,0.4);
+    margin-top: 0.3rem;
+    animation: fadeUp 1.2s 0.3s both;
+  }
+
+  @keyframes logoIn {
+    from { opacity: 0; transform: scale(1.3) translateY(-30px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .menu-nav {
+    display: flex; flex-direction: column; gap: 0.7rem;
+    margin-top: 3rem;
+    animation: fadeUp 1s 0.5s both;
+    position: relative; z-index: 1;
+  }
+
+  .menu-btn {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    letter-spacing: 0.15em;
+    padding: 0.9rem 4rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    min-width: 280px;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  }
+  .menu-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--green), var(--blue));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .menu-btn:hover::before { opacity: 0.15; }
+  .menu-btn:hover { border-color: var(--green); transform: translateX(6px); color: var(--green); }
+  .menu-btn.primary { border-color: var(--green); color: var(--green); }
+  .menu-btn.primary::before { opacity: 0.08; }
+
+  /* LEAGUE SELECT */
+  #league-screen {
+    background: radial-gradient(ellipse at 50% 50%, #0a1525 0%, var(--darker) 70%);
+  }
+
+  .screen-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(2rem, 5vw, 4rem);
+    letter-spacing: 0.1em;
+    color: var(--green);
+    margin-bottom: 2.5rem;
+  }
+
+  .leagues-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    max-width: 900px;
+    width: 90%;
+  }
+
+  .league-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .league-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px;
+    transition: opacity 0.2s;
+    opacity: 0;
+  }
+  .league-card:hover { border-color: var(--gold); transform: translateY(-4px); background: rgba(255,214,0,0.06); }
+  .league-card:hover::after { opacity: 1; background: var(--gold); }
+  .league-card.selected { border-color: var(--green); background: rgba(0,230,118,0.1); }
+
+  .league-icon { font-size: 2.5rem; margin-bottom: 0.5rem; display: block; }
+  .league-name { font-family: 'Bebas Neue', cursive; font-size: 1.1rem; letter-spacing: 0.08em; color: #fff; }
+  .league-country { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 0.2rem; }
+
+  /* TEAM SELECT */
+  #team-screen { background: radial-gradient(ellipse at 50% 50%, #100a25 0%, var(--darker) 70%); }
+  
+  .teams-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.7rem;
+    max-width: 900px;
+    width: 90%;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .teams-grid::-webkit-scrollbar { width: 4px; }
+  .teams-grid::-webkit-scrollbar-track { background: transparent; }
+  .teams-grid::-webkit-scrollbar-thumb { background: var(--green); border-radius: 2px; }
+
+  .team-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1rem 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .team-card:hover { border-color: var(--blue); background: rgba(41,121,255,0.1); transform: scale(1.04); }
+  .team-card.selected { border-color: var(--gold); background: rgba(255,214,0,0.1); }
+  .team-badge { font-size: 2rem; display: block; margin-bottom: 0.3rem; }
+  .team-name { font-family: 'Bebas Neue', cursive; font-size: 0.85rem; letter-spacing: 0.05em; color: #fff; }
+  .team-rating { font-size: 0.7rem; color: var(--gold); margin-top: 0.2rem; }
+
+  /* SETTINGS */
+  #settings-screen { background: radial-gradient(ellipse at 50% 50%, #0a100f 0%, var(--darker) 70%); }
+  
+  .settings-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    display: flex; flex-direction: column; gap: 1.4rem;
+  }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .setting-label {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.1rem; letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.8);
+  }
+  .setting-control {
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .toggle {
+    width: 46px; height: 24px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid var(--border);
+  }
+  .toggle.on { background: var(--green); }
+  .toggle::after {
+    content: '';
+    position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(22px); }
+  .slider-wrap { display: flex; align-items: center; gap: 0.8rem; }
+  .setting-slider {
+    -webkit-appearance: none;
+    width: 140px; height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--green);
+    cursor: pointer;
+  }
+  .slider-val { font-size: 0.9rem; color: var(--green); min-width: 2rem; text-align: right; font-weight: 600; }
+  .select-btn {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 0.95rem; letter-spacing: 0.08em;
+    padding: 0.3rem 1rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .select-btn.active { border-color: var(--green); color: var(--green); background: rgba(0,230,118,0.1); }
+  .select-btn:hover { border-color: rgba(255,255,255,0.4); }
+
+  /* CONTROLS REFERENCE */
+  .controls-ref {
+    position: fixed; bottom: 1rem; left: 1rem;
+    z-index: 200;
+    display: none;
+    flex-direction: column; gap: 0.3rem;
+  }
+  .controls-ref.visible { display: flex; }
+  .ctrl-item {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.75rem; font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .key-badge {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.7);
+    font-family: 'Orbitron', monospace;
+  }
+
+  /* HUD */
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 150;
+    display: none;
+    pointer-events: none;
+  }
+  #hud.visible { display: block; }
+  
+  .hud-top {
+    display: flex; align-items: stretch;
+    justify-content: center;
+    padding: 0.8rem 1rem;
+    gap: 0;
+  }
+  
+  .team-hud {
+    display: flex; align-items: center; gap: 0.8rem;
+    background: rgba(0,0,0,0.75);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0.6rem 1.2rem;
+    backdrop-filter: blur(10px);
+  }
+  .team-hud.home { clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); border-right: none; }
+  .team-hud.away { clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%); border-left: none; }
+  
+  .hud-team-name {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.1rem; letter-spacing: 0.08em;
+  }
+  .hud-score-wrap {
+    background: rgba(0,0,0,0.9);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 0.5rem 1.5rem;
+    text-align: center;
+    min-width: 120px;
+  }
+  .hud-score {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2rem; letter-spacing: 0.1em;
+    color: #fff;
+    line-height: 1;
+  }
+  .hud-time {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.1em;
+    margin-top: 0.1rem;
+  }
+
+  .hud-mini {
+    position: fixed; top: 5.5rem; left: 50%; transform: translateX(-50%);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--green);
+    letter-spacing: 0.2em;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  /* GOAL BANNER */
+  #goal-banner {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 300;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  #goal-banner.show { opacity: 1; }
+  .goal-text {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(5rem, 15vw, 12rem);
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--gold), #fff, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    animation: goalPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+    text-shadow: none;
+    filter: drop-shadow(0 0 40px rgba(255,214,0,0.5));
+  }
+  @keyframes goalPop {
+    from { transform: scale(0.3) rotate(-5deg); }
+    to { transform: scale(1) rotate(0deg); }
+  }
+  .goal-scorer {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    margin-top: 0.5rem;
+    letter-spacing: 0.2em;
+  }
+
+  /* PAUSE MENU */
+  #pause-screen {
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+  }
+
+  /* MATCH RESULT */
+  #result-screen { background: radial-gradient(ellipse at 50% 50%, #0a1a0a 0%, var(--darker) 70%); }
+  .result-score {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(4rem, 12vw, 8rem);
+    letter-spacing: 0.15em;
+    color: var(--gold);
+  }
+  .result-teams {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 1rem;
+  }
+  .result-msg {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 2rem;
+  }
+  .result-msg.win { color: var(--green); }
+  .result-msg.loss { color: var(--red); }
+  .result-msg.draw { color: var(--gold); }
+
+  /* MINIMAP */
+  #minimap {
+    position: fixed; bottom: 1rem; right: 1rem;
+    width: 140px; height: 90px;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: none;
+    overflow: hidden;
+    z-index: 200;
+  }
+  #minimap.visible { display: block; }
+  #minimap canvas { width: 100%; height: 100%; }
+
+  /* STAMINA BAR */
+  .stamina-wrap {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    display: none; flex-direction: column; align-items: center; gap: 0.3rem;
+    z-index: 200; pointer-events: none;
+  }
+  .stamina-wrap.visible { display: flex; }
+  .stamina-label { font-family: 'Orbitron', monospace; font-size: 0.6rem; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; }
+  .stamina-bar { width: 160px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .stamina-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.1s, background 0.3s; width: 100%; }
+
+  .btn-row { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; justify-content: center; }
+  .back-btn {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1rem; letter-spacing: 0.15em;
+    padding: 0.6rem 2rem;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: transparent; color: rgba(255,255,255,0.6);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .back-btn:hover { border-color: #fff; color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- CANVAS -->
+<canvas id="game-canvas"></canvas>
+
+<!-- ══════════════ MAIN MENU ══════════════ -->
+<div class="screen" id="menu-screen">
+  <div class="pitch-bg"></div>
+  <div class="pitch-lines"></div>
+  <div class="logo">STRIKER FC</div>
+  <div class="logo-sub">THE BEAUTIFUL GAME</div>
+  <nav class="menu-nav">
+    <button class="menu-btn primary" onclick="showScreen('league-screen')">⚽ KICK OFF</button>
+    <button class="menu-btn" onclick="showScreen('settings-screen')">⚙ SETTINGS</button>
+    <button class="menu-btn" onclick="showControls()">🎮 CONTROLS</button>
+  </nav>
+</div>
+
+<!-- ══════════════ LEAGUE SELECT ══════════════ -->
+<div class="screen hidden" id="league-screen">
+  <div class="screen-title">SELECT COMPETITION</div>
+  <div class="leagues-grid" id="leagues-grid"></div>
+  <div class="btn-row">
+    <button class="back-btn" onclick="showScreen('menu-screen')">← BACK</button>
+  </div>
+</div>
+
+<!-- ══════════════ TEAM SELECT ══════════════ -->
+<div class="screen hidden" id="team-screen">
+  <div class="screen-title" id="team-screen-title">SELECT YOUR TEAM</div>
+  <div class="teams-grid" id="teams-grid"></div>
+  <div class="btn-row">
+    <button class="back-btn" onclick="showScreen('league-screen')">← BACK</button>
+    <button class="menu-btn primary" id="play-btn" style="display:none" onclick="startMatch()">▶ PLAY MATCH</button>
+  </div>
+</div>
+
+<!-- ══════════════ SETTINGS ══════════════ -->
+<div class="screen hidden" id="settings-screen">
+  <div class="screen-title">SETTINGS</div>
+  <div class="settings-panel">
+    <div class="setting-row">
+      <span class="setting-label">DIFFICULTY</span>
+      <div class="setting-control">
+        <button class="select-btn active" onclick="setDifficulty('easy',this)">EASY</button>
+        <button class="select-btn" onclick="setDifficulty('medium',this)">MED</button>
+        <button class="select-btn" onclick="setDifficulty('hard',this)">HARD</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">MATCH LENGTH</span>
+      <div class="setting-control slider-wrap">
+        <input type="range" class="setting-slider" min="3" max="10" value="5" oninput="settings.matchMinutes=+this.value;this.nextElementSibling.textContent=this.value+'m'">
+        <span class="slider-val">5m</span>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">SOUND</span>
+      <div class="toggle on" id="sound-toggle" onclick="toggleSetting('sound',this)"></div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">MINIMAP</span>
+      <div class="toggle on" id="minimap-toggle" onclick="toggleSetting('minimap',this)"></div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">CAMERA ZOOM</span>
+      <div class="setting-control slider-wrap">
+        <input type="range" class="setting-slider" min="10" max="30" value="18" oninput="settings.cameraZoom=+this.value;this.nextElementSibling.textContent=this.value">
+        <span class="slider-val">18</span>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">GAME SPEED</span>
+      <div class="setting-control">
+        <button class="select-btn" onclick="setSpeed(0.7,this)">SLOW</button>
+        <button class="select-btn active" onclick="setSpeed(1,this)">NORMAL</button>
+        <button class="select-btn" onclick="setSpeed(1.4,this)">FAST</button>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="back-btn" onclick="showScreen('menu-screen')">← BACK</button>
+  </div>
+</div>
+
+<!-- ══════════════ PAUSE SCREEN ══════════════ -->
+<div class="screen hidden" id="pause-screen">
+  <div class="screen-title">PAUSED</div>
+  <nav class="menu-nav">
+    <button class="menu-btn primary" onclick="resumeGame()">▶ RESUME</button>
+    <button class="menu-btn" onclick="showScreen('settings-screen')">⚙ SETTINGS</button>
+    <button class="menu-btn" onclick="quitMatch()">✕ QUIT MATCH</button>
+  </nav>
+</div>
+
+<!-- ══════════════ RESULT SCREEN ══════════════ -->
+<div class="screen hidden" id="result-screen">
+  <div class="result-teams" id="result-teams"></div>
+  <div class="result-score" id="result-score"></div>
+  <div class="result-msg" id="result-msg"></div>
+  <div class="btn-row">
+    <button class="menu-btn primary" onclick="showScreen('team-screen')">⚽ PLAY AGAIN</button>
+    <button class="menu-btn" onclick="showScreen('menu-screen')">🏠 MAIN MENU</button>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="team-hud home">
+      <span class="hud-team-name" id="hud-home-name">HOME</span>
+    </div>
+    <div class="hud-score-wrap">
+      <div class="hud-score"><span id="hud-score-h">0</span> – <span id="hud-score-a">0</span></div>
+      <div class="hud-time" id="hud-time">00:00</div>
+    </div>
+    <div class="team-hud away">
+      <span class="hud-team-name" id="hud-away-name">AWAY</span>
+    </div>
+  </div>
+  <div class="hud-mini" id="hud-possession">HOME POSSESSION</div>
+</div>
+
+<!-- GOAL BANNER -->
+<div id="goal-banner">
+  <div>
+    <div class="goal-text">GOAL!</div>
+    <div class="goal-scorer" id="goal-scorer-name"></div>
+  </div>
+</div>
+
+<!-- MINIMAP -->
+<div id="minimap"><canvas id="minimap-canvas"></canvas></div>
+
+<!-- STAMINA BAR -->
+<div class="stamina-wrap" id="stamina-wrap">
+  <div class="stamina-bar"><div class="stamina-fill" id="stamina-fill"></div></div>
+  <div class="stamina-label">STAMINA</div>
+</div>
+
+<!-- CONTROLS REF -->
+<div class="controls-ref" id="controls-ref">
+  <div class="ctrl-item"><span class="key-badge">W A S D</span> Move</div>
+  <div class="ctrl-item"><span class="key-badge">SHIFT</span> Sprint</div>
+  <div class="ctrl-item"><span class="key-badge">SPACE</span> Shoot</div>
+  <div class="ctrl-item"><span class="key-badge">E</span> Pass</div>
+  <div class="ctrl-item"><span class="key-badge">Q</span> Lob Pass</div>
+  <div class="ctrl-item"><span class="key-badge">F</span> Call for Ball 📣</div>
+  <div class="ctrl-item"><span class="key-badge">TAB</span> Switch Player</div>
+  <div class="ctrl-item"><span class="key-badge">ESC</span> Pause</div>
+</div>
+
+<!-- THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════════
+const LEAGUES = [
+  { id:'bundesliga',  name:'Bundesliga',        country:'Germany 🇩🇪',  icon:'🦅', color:'#e30614' },
+  { id:'ligue1',      name:'Ligue 1',           country:'France 🇫🇷',   icon:'🐓', color:'#003087' },
+  { id:'laliga',      name:'La Liga',           country:'Spain 🇪🇸',    icon:'🌞', color:'#c8102e' },
+  { id:'seriea',      name:'Serie A',           country:'Italy 🇮🇹',    icon:'🐺', color:'#024494' },
+  { id:'premier',     name:'Premier League',    country:'England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', icon:'🦁', color:'#3d195b' },
+  { id:'cl',          name:"Champions League",  country:'Europe 🇪🇺',   icon:'⭐', color:'#0055a5' },
+  { id:'europa',      name:'Europa League',     country:'Europe 🇪🇺',   icon:'🟠', color:'#f36c21' },
+  { id:'worldcup',    name:'World Cup',         country:'International 🌍',icon:'🏆',color:'#c8a951' },
+  { id:'coppa',       name:'Coppa Italia',      country:'Italy 🇮🇹',    icon:'🔵', color:'#024494' },
+  { id:'dfbpokal',    name:'DFB Pokal',         country:'Germany 🇩🇪',  icon:'🏅', color:'#000000' },
+];
+
+const TEAMS_BY_LEAGUE = {
+  bundesliga: [
+    {name:'Bayern München',badge:'🔴',rating:91,colors:['#dc052d','#ffffff'],abbr:'FCB'},
+    {name:'Borussia Dortmund',badge:'🟡',rating:86,colors:['#fde100','#000000'],abbr:'BVB'},
+    {name:'Bayer Leverkusen',badge:'⚫',rating:84,colors:['#000000','#e32221'],abbr:'B04'},
+    {name:'RB Leipzig',badge:'🔵',rating:83,colors:['#dd0741','#ffffff'],abbr:'RBL'},
+    {name:'Eintracht Frankfurt',badge:'🦅',rating:81,colors:['#000000','#e1000f'],abbr:'SGE'},
+    {name:'Borussia Mönchengladbach',badge:'⚪',rating:79,colors:['#000000','#ffffff'],abbr:'BMG'},
+  ],
+  ligue1: [
+    {name:'Paris Saint-Germain',badge:'🔵',rating:88,colors:['#004170','#da291c'],abbr:'PSG'},
+    {name:'Marseille',badge:'⚪',rating:82,colors:['#00a0e9','#ffffff'],abbr:'OM'},
+    {name:'Monaco',badge:'🔴',rating:81,colors:['#c8102e','#ffffff'],abbr:'ASM'},
+    {name:'Lyon',badge:'🔵',rating:80,colors:['#1d2c4d','#cc0000'],abbr:'OL'},
+    {name:'Lille',badge:'🔴',rating:79,colors:['#e32213','#031d3e'],abbr:'LOSC'},
+    {name:'Nice',badge:'🔴',rating:78,colors:['#c8102e','#000000'],abbr:'OGC'},
+  ],
+  laliga: [
+    {name:'Real Madrid',badge:'⚪',rating:92,colors:['#ffffff','#00529f'],abbr:'RMA'},
+    {name:'FC Barcelona',badge:'🔵',rating:89,colors:['#a50044','#004d98'],abbr:'FCB'},
+    {name:'Atlético Madrid',badge:'🔴',rating:86,colors:['#cb3524','#272e61'],abbr:'ATM'},
+    {name:'Athletic Club',badge:'🔴',rating:80,colors:['#ee2523','#ffffff'],abbr:'ATH'},
+    {name:'Villarreal',badge:'🟡',rating:79,colors:['#fcbe11','#ffffff'],abbr:'VIL'},
+    {name:'Sevilla',badge:'⚪',rating:80,colors:['#d91a21','#ffffff'],abbr:'SEV'},
+  ],
+  seriea: [
+    {name:'Inter Milan',badge:'🔵',rating:88,colors:['#1a1b41','#000000'],abbr:'INT'},
+    {name:'Juventus',badge:'⚫',rating:87,colors:['#000000','#ffffff'],abbr:'JUV'},
+    {name:'AC Milan',badge:'🔴',rating:86,colors:['#fb0008','#000000'],abbr:'MIL'},
+    {name:'Napoli',badge:'🔵',rating:85,colors:['#287fcf','#ffffff'],abbr:'NAP'},
+    {name:'AS Roma',badge:'🟡',rating:82,colors:['#8e1f2f','#f5b400'],abbr:'ROM'},
+    {name:'Lazio',badge:'🔵',rating:81,colors:['#87ceeb','#002266'],abbr:'LAZ'},
+  ],
+  premier: [
+    {name:'Manchester City',badge:'🔵',rating:93,colors:['#6caee0','#1c2c5b'],abbr:'MCI'},
+    {name:'Arsenal',badge:'🔴',rating:88,colors:['#ef0107','#ffffff'],abbr:'ARS'},
+    {name:'Liverpool',badge:'🔴',rating:88,colors:['#c8102e','#f6eb61'],abbr:'LIV'},
+    {name:'Chelsea',badge:'🔵',rating:85,colors:['#034694','#ffffff'],abbr:'CHE'},
+    {name:'Manchester United',badge:'🔴',rating:83,colors:['#da291c','#000000'],abbr:'MUN'},
+    {name:'Tottenham',badge:'⚪',rating:82,colors:['#132257','#ffffff'],abbr:'TOT'},
+  ],
+  cl: [
+    {name:'Real Madrid',badge:'⚪',rating:92,colors:['#ffffff','#00529f'],abbr:'RMA'},
+    {name:'Manchester City',badge:'🔵',rating:93,colors:['#6caee0','#1c2c5b'],abbr:'MCI'},
+    {name:'Bayern München',badge:'🔴',rating:91,colors:['#dc052d','#ffffff'],abbr:'FCB'},
+    {name:'PSG',badge:'🔵',rating:88,colors:['#004170','#da291c'],abbr:'PSG'},
+    {name:'Inter Milan',badge:'🔵',rating:88,colors:['#1a1b41','#000000'],abbr:'INT'},
+    {name:'FC Barcelona',badge:'🔵',rating:89,colors:['#a50044','#004d98'],abbr:'FCB'},
+  ],
+  europa: [
+    {name:'Sevilla',badge:'⚪',rating:80,colors:['#d91a21','#ffffff'],abbr:'SEV'},
+    {name:'Eintracht Frankfurt',badge:'🦅',rating:81,colors:['#000000','#e1000f'],abbr:'SGE'},
+    {name:'Marseille',badge:'⚪',rating:82,colors:['#00a0e9','#ffffff'],abbr:'OM'},
+    {name:'Roma',badge:'🟡',rating:82,colors:['#8e1f2f','#f5b400'],abbr:'ROM'},
+    {name:'Villarreal',badge:'🟡',rating:79,colors:['#fcbe11','#ffffff'],abbr:'VIL'},
+    {name:'Lyon',badge:'🔵',rating:80,colors:['#1d2c4d','#cc0000'],abbr:'OL'},
+  ],
+  worldcup: [
+    {name:'Brazil 🇧🇷',badge:'🟡',rating:89,colors:['#009c3b','#fedf00'],abbr:'BRA'},
+    {name:'France 🇫🇷',badge:'🔵',rating:88,colors:['#002395','#ed2939'],abbr:'FRA'},
+    {name:'Argentina 🇦🇷',badge:'🔵',rating:91,colors:['#74acdf','#ffffff'],abbr:'ARG'},
+    {name:'England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',badge:'⚪',rating:85,colors:['#ffffff','#cf081f'],abbr:'ENG'},
+    {name:'Germany 🇩🇪',badge:'⚫',rating:84,colors:['#000000','#dd0000'],abbr:'GER'},
+    {name:'Spain 🇪🇸',badge:'🔴',rating:86,colors:['#c8102e','#ffc400'],abbr:'ESP'},
+    {name:'Portugal 🇵🇹',badge:'🔴',rating:84,colors:['#006600','#ff0000'],abbr:'POR'},
+    {name:'Netherlands 🇳🇱',badge:'🟠',rating:83,colors:['#ff6a13','#003da5'],abbr:'NED'},
+  ],
+  coppa: [
+    {name:'Juventus',badge:'⚫',rating:87,colors:['#000000','#ffffff'],abbr:'JUV'},
+    {name:'AC Milan',badge:'🔴',rating:86,colors:['#fb0008','#000000'],abbr:'MIL'},
+    {name:'Napoli',badge:'🔵',rating:85,colors:['#287fcf','#ffffff'],abbr:'NAP'},
+    {name:'Inter Milan',badge:'🔵',rating:88,colors:['#1a1b41','#000000'],abbr:'INT'},
+    {name:'AS Roma',badge:'🟡',rating:82,colors:['#8e1f2f','#f5b400'],abbr:'ROM'},
+    {name:'Lazio',badge:'🔵',rating:81,colors:['#87ceeb','#002266'],abbr:'LAZ'},
+  ],
+  dfbpokal: [
+    {name:'Bayern München',badge:'🔴',rating:91,colors:['#dc052d','#ffffff'],abbr:'FCB'},
+    {name:'Borussia Dortmund',badge:'🟡',rating:86,colors:['#fde100','#000000'],abbr:'BVB'},
+    {name:'RB Leipzig',badge:'🔵',rating:83,colors:['#dd0741','#ffffff'],abbr:'RBL'},
+    {name:'Bayer Leverkusen',badge:'⚫',rating:84,colors:['#000000','#e32221'],abbr:'B04'},
+    {name:'Wolfsburg',badge:'🟢',rating:78,colors:['#65b32e','#000000'],abbr:'WOB'},
+    {name:'Freiburg',badge:'🔴',rating:77,colors:['#cc0000','#000000'],abbr:'SCF'},
+  ],
+};
+
+// Shared fallback
+Object.keys(TEAMS_BY_LEAGUE).forEach(k => {
+  if (!TEAMS_BY_LEAGUE[k]) TEAMS_BY_LEAGUE[k] = TEAMS_BY_LEAGUE.premier;
+});
+
+// ══════════════════════════════════════════════════════════
+//  SETTINGS STATE
+// ══════════════════════════════════════════════════════════
+const settings = {
+  difficulty: 'easy',
+  matchMinutes: 5,
+  sound: true,
+  minimap: true,
+  cameraZoom: 18,
+  gameSpeed: 1.0
+};
+
+function setDifficulty(d, btn) {
+  settings.difficulty = d;
+  btn.closest('.setting-control').querySelectorAll('.select-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setSpeed(s, btn) {
+  settings.gameSpeed = s;
+  btn.closest('.setting-control').querySelectorAll('.select-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function toggleSetting(key, el) {
+  settings[key] = !settings[key];
+  el.classList.toggle('on', settings[key]);
+  if (key === 'minimap') {
+    document.getElementById('minimap').classList.toggle('visible', settings.minimap && gameState === 'playing');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ══════════════════════════════════════════════════════════
+let gameState = 'menu'; // menu | playing | paused
+let selectedLeague = null;
+let selectedTeam = null;
+let opposingTeam = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.toggle('hidden', s.id !== id);
+  });
+  document.getElementById('controls-ref').classList.remove('visible');
+}
+
+function showControls() {
+  const ref = document.getElementById('controls-ref');
+  ref.classList.toggle('visible');
+  // Show temporarily on menu
+  if (ref.classList.contains('visible')) {
+    setTimeout(() => ref.classList.remove('visible'), 6000);
+  }
+}
+
+// Build league list
+const lg = document.getElementById('leagues-grid');
+LEAGUES.forEach(l => {
+  const card = document.createElement('div');
+  card.className = 'league-card';
+  card.innerHTML = `<span class="league-icon">${l.icon}</span><div class="league-name">${l.name}</div><div class="league-country">${l.country}</div>`;
+  card.onclick = () => {
+    selectedLeague = l;
+    buildTeamSelect(l);
+    showScreen('team-screen');
+  };
+  lg.appendChild(card);
+});
+
+function buildTeamSelect(league) {
+  const grid = document.getElementById('teams-grid');
+  grid.innerHTML = '';
+  selectedTeam = null;
+  document.getElementById('play-btn').style.display = 'none';
+  document.getElementById('team-screen-title').textContent = `SELECT TEAM — ${league.name.toUpperCase()}`;
+  const teams = TEAMS_BY_LEAGUE[league.id] || TEAMS_BY_LEAGUE.premier;
+  teams.forEach(team => {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    card.innerHTML = `<span class="team-badge">${team.badge}</span><div class="team-name">${team.name}</div><div class="team-rating">⭐ ${team.rating}</div>`;
+    card.onclick = () => {
+      grid.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedTeam = team;
+      // pick random opponent
+      const others = teams.filter(t => t !== team);
+      opposingTeam = others[Math.floor(Math.random() * others.length)];
+      document.getElementById('play-btn').style.display = 'inline-block';
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  THREE.JS GAME ENGINE
+// ══════════════════════════════════════════════════════════
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(1); // Lock to 1 — biggest single GPU win
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap; // cheaper than PCFSoft
+
+const scene = new THREE.Scene();
+// Sky gradient via background color + fog
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.FogExp2(0x87ceeb, 0.006);
+
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
+
+// FIELD DIMENSIONS (scaled)
+const FIELD_W = 68;
+const FIELD_H = 105;
+const GOAL_W = 7.32;
+const GOAL_H_3D = 2.44;
+
+// Game vars
+let matchRunning = false;
+let matchTimer = 0;
+let matchDuration = 300; // seconds
+let score = { home: 0, away: 0 };
+let players = [];
+let ball;
+let controlledIdx = 0; // index in players array (home team)
+let stamina = 100;
+let possession = 'home';
+let lastGoalTime = -999;
+let fieldObjects = [];
+
+const keys = {};
+document.addEventListener('keydown', e => { keys[e.code] = true; onKeyDown(e); });
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ── BUILD FIELD ──────────────────────────────────────────
+function buildField() {
+  // ── PITCH with canvas texture (stripes baked in — zero extra draw calls) ──
+  const stripeCanvas = document.createElement('canvas');
+  stripeCanvas.width = 64; stripeCanvas.height = 512;
+  const sc = stripeCanvas.getContext('2d');
+  const stripeCount = 10;
+  const stripeH = stripeCanvas.height / stripeCount;
+  for (let i = 0; i < stripeCount; i++) {
+    sc.fillStyle = i % 2 === 0 ? '#2e7d32' : '#388e3c';
+    sc.fillRect(0, i * stripeH, stripeCanvas.width, stripeH);
+  }
+  const stripeTex = new THREE.CanvasTexture(stripeCanvas);
+  stripeTex.wrapT = THREE.RepeatWrapping;
+
+  const pitchGeo = new THREE.PlaneGeometry(FIELD_W, FIELD_H);
+  const pitchMat = new THREE.MeshLambertMaterial({ map: stripeTex });
+  const pitch = new THREE.Mesh(pitchGeo, pitchMat);
+  pitch.rotation.x = -Math.PI / 2;
+  pitch.receiveShadow = true;
+  scene.add(pitch);
+
+  // Ground outside pitch (1 plane)
+  const groundGeo = new THREE.PlaneGeometry(400, 400);
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x2a5a2a });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.05;
+  scene.add(ground);
+
+  // ── FIELD LINES — baked into one canvas texture on a single plane ──
+  const lc = document.createElement('canvas');
+  lc.width = 512; lc.height = 1024;
+  const lctx = lc.getContext('2d');
+  lctx.clearRect(0, 0, lc.width, lc.height);
+  lctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  lctx.lineWidth = 6;
+  const mx = x => (x / FIELD_W + 0.5) * lc.width;
+  const mz = z => (z / FIELD_H + 0.5) * lc.height;
+  // Perimeter
+  lctx.strokeRect(mx(-FIELD_W/2)+3, mz(-FIELD_H/2)+3, lc.width-6, lc.height-6);
+  // Halfway
+  lctx.beginPath(); lctx.moveTo(mx(-FIELD_W/2), mz(0)); lctx.lineTo(mx(FIELD_W/2), mz(0)); lctx.stroke();
+  // Centre circle
+  lctx.beginPath(); lctx.arc(mx(0), mz(0), (9.15/FIELD_W)*lc.width, 0, Math.PI*2); lctx.stroke();
+  // Centre spot
+  lctx.fillStyle = '#ffffff';
+  lctx.beginPath(); lctx.arc(mx(0), mz(0), 4, 0, Math.PI*2); lctx.fill();
+  // Penalty areas
+  const pa = (gz, sign) => {
+    const PW = 40.32, PD = 16.5, SW = 18.32, SD = 5.5;
+    lctx.strokeRect(mx(-PW/2), mz(gz), (PW/FIELD_W)*lc.width, sign*(PD/FIELD_H)*lc.height);
+    lctx.strokeRect(mx(-SW/2), mz(gz), (SW/FIELD_W)*lc.width, sign*(SD/FIELD_H)*lc.height);
+    // Penalty spot
+    lctx.beginPath(); lctx.arc(mx(0), mz(gz + sign*11), 4, 0, Math.PI*2); lctx.fill();
+    // Penalty arc
+    lctx.beginPath();
+    lctx.arc(mx(0), mz(gz + sign*11), (9.15/FIELD_W)*lc.width, sign > 0 ? Math.PI*1.2 : Math.PI*0.2, sign > 0 ? Math.PI*1.8 : Math.PI*0.8);
+    lctx.stroke();
+    // Goal area lines
+    lctx.beginPath(); lctx.moveTo(mx(-GOAL_W/2), mz(gz)); lctx.lineTo(mx(-GOAL_W/2), mz(gz + sign*2));
+    lctx.moveTo(mx(GOAL_W/2), mz(gz)); lctx.lineTo(mx(GOAL_W/2), mz(gz + sign*2));
+    lctx.stroke();
+  };
+  pa(-FIELD_H/2, 1); pa(FIELD_H/2, -1);
+  const lineTex = new THREE.CanvasTexture(lc);
+  const linePlaneGeo = new THREE.PlaneGeometry(FIELD_W, FIELD_H);
+  const linePlaneMat = new THREE.MeshBasicMaterial({ map: lineTex, transparent: true, depthWrite: false });
+  const linePlane = new THREE.Mesh(linePlaneGeo, linePlaneMat);
+  linePlane.rotation.x = -Math.PI / 2;
+  linePlane.position.y = 0.02;
+  scene.add(linePlane);
+
+  // ── GOALS (kept 3D — players interact with them visually) ──
+  addGoal(0, -FIELD_H/2, false);
+  addGoal(0,  FIELD_H/2, true);
+
+  // ── LIGHTS — 1 directional + hemisphere only, no SpotLights ──
+  const hemi = new THREE.HemisphereLight(0xd4eaff, 0x3a6a3a, 0.55);
+  scene.add(hemi);
+
+  const sun = new THREE.DirectionalLight(0xfffbe8, 1.1);
+  sun.position.set(40, 80, 30);
+  sun.castShadow = true;
+  sun.shadow.mapSize.width  = 1024; // was 4096 — 16× fewer shadow pixels
+  sun.shadow.mapSize.height = 1024;
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far  = 250;
+  sun.shadow.camera.left   = -80;
+  sun.shadow.camera.right  =  80;
+  sun.shadow.camera.top    =  80;
+  sun.shadow.camera.bottom = -80;
+  sun.shadow.bias = -0.002;
+  scene.add(sun);
+
+  // Two cheap point lights for floodlight feel (no shadow)
+  [[-30, 28, -45], [30, 28, 45]].forEach(([x,y,z]) => {
+    const pl = new THREE.PointLight(0xfff8e0, 0.5, 150);
+    pl.position.set(x, y, z);
+    scene.add(pl);
+  });
+
+  // ── STADIUM — InstancedMesh for crowd (6 colors × 1 geometry = 6 draw calls instead of 600) ──
+  const standColors = [0xcc2200, 0x0044cc, 0x00aa44, 0xffcc00, 0xffffff, 0x222222];
+  const standHeight = 8, standDepth = 12;
+  const standDefs = [
+    { x: 0,                       z: -(FIELD_H/2 + standDepth/2 + 2), w: FIELD_W + standDepth*2 + 4, d: standDepth },
+    { x: 0,                       z:  FIELD_H/2 + standDepth/2 + 2,   w: FIELD_W + standDepth*2 + 4, d: standDepth },
+    { x: -(FIELD_W/2 + standDepth/2 + 2), z: 0,                       w: standDepth, d: FIELD_H },
+    { x:  FIELD_W/2 + standDepth/2 + 2,   z: 0,                       w: standDepth, d: FIELD_H },
+  ];
+
+  // Stand bases (just 4 box meshes — fine)
+  const baseMat = new THREE.MeshLambertMaterial({ color: 0x4a4a5a });
+  standDefs.forEach(sd => {
+    const baseGeo = new THREE.BoxGeometry(sd.w, standHeight, sd.d);
+    const base = new THREE.Mesh(baseGeo, baseMat);
+    base.position.set(sd.x, standHeight / 2, sd.z);
+    scene.add(base);
+  });
+
+  // Crowd: InstancedMesh per color — all crowd = 6 draw calls total
+  const seatGeo = new THREE.BoxGeometry(1.8, 1.2, 0.8);
+  const crowdRows = 4;
+  // Collect all seat positions + color index
+  const seatsByColor = standColors.map(() => []);
+  standDefs.forEach(sd => {
+    const crowdCols = Math.floor(sd.w / 2.2);
+    for (let row = 0; row < crowdRows; row++) {
+      for (let col = 0; col < crowdCols; col++) {
+        const sx = sd.x + (col - crowdCols/2) * 2.1 + 1.05;
+        const sy = standHeight + row * 1.5 + 1;
+        const sz = sd.z;
+        const ci = Math.floor(Math.random() * standColors.length);
+        seatsByColor[ci].push(new THREE.Vector3(sx, sy, sz));
+      }
+    }
+  });
+  seatsByColor.forEach((positions, ci) => {
+    if (!positions.length) return;
+    const mat = new THREE.MeshLambertMaterial({ color: standColors[ci] });
+    const inst = new THREE.InstancedMesh(seatGeo, mat, positions.length);
+    inst.frustumCulled = false; // avoid per-instance culling overhead
+    const dummy = new THREE.Object3D();
+    positions.forEach((pos, k) => {
+      dummy.position.copy(pos);
+      dummy.updateMatrix();
+      inst.setMatrixAt(k, dummy.matrix);
+    });
+    inst.instanceMatrix.needsUpdate = true;
+    scene.add(inst);
+  });
+
+  // Roof (4 boxes)
+  const roofMat = new THREE.MeshLambertMaterial({ color: 0x333344 });
+  standDefs.forEach(sd => {
+    const roofGeo = new THREE.BoxGeometry(sd.w + 2, 0.6, sd.d * 0.35);
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(sd.x, standHeight + crowdRows * 1.5 + 2, sd.z);
+    scene.add(roof);
+  });
+
+  // Light poles (InstancedMesh — 4 poles, 4 houses)
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0x778899 });
+  const poleGeo = new THREE.CylinderGeometry(0.3, 0.5, 35, 6);
+  const poleInst = new THREE.InstancedMesh(poleGeo, poleMat, 4);
+  const polePositions = [
+    [-FIELD_W*0.75, 35/2, -FIELD_H*0.5],
+    [ FIELD_W*0.75, 35/2, -FIELD_H*0.5],
+    [-FIELD_W*0.75, 35/2,  FIELD_H*0.5],
+    [ FIELD_W*0.75, 35/2,  FIELD_H*0.5],
+  ];
+  const dummyPole = new THREE.Object3D();
+  polePositions.forEach((pos, k) => {
+    dummyPole.position.set(...pos);
+    dummyPole.updateMatrix();
+    poleInst.setMatrixAt(k, dummyPole.matrix);
+  });
+  poleInst.instanceMatrix.needsUpdate = true;
+  scene.add(poleInst);
+
+  // Corner flags (InstancedMesh — 4 flags)
+  const flagPoleMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const flagPoleGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.5, 5);
+  const flagInst = new THREE.InstancedMesh(flagPoleGeo, flagPoleMat, 4);
+  const flagPositions = [[-FIELD_W/2,0.75,FIELD_H/2],[FIELD_W/2,0.75,FIELD_H/2],[-FIELD_W/2,0.75,-FIELD_H/2],[FIELD_W/2,0.75,-FIELD_H/2]];
+  const dummyFlag = new THREE.Object3D();
+  flagPositions.forEach((pos, k) => {
+    dummyFlag.position.set(...pos);
+    dummyFlag.updateMatrix();
+    flagInst.setMatrixAt(k, dummyFlag.matrix);
+  });
+  flagInst.instanceMatrix.needsUpdate = true;
+  scene.add(flagInst);
+}
+
+// Lines are now baked into a canvas texture — no addPenaltyArea needed
+
+
+
+function addGoal(x, z, isBottom) {
+  const postMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const r = 0.14;
+  const depth = 2.44;
+  const dirSign = isBottom ? -1 : 1;
+
+  // Use InstancedMesh for the 4 vertical posts (2 front + 2 back)
+  const postGeo = new THREE.CylinderGeometry(r, r, GOAL_H_3D, 7);
+  const postInst = new THREE.InstancedMesh(postGeo, postMat, 4);
+  const dummyP = new THREE.Object3D();
+  [[x-GOAL_W/2, GOAL_H_3D/2, z],[x+GOAL_W/2, GOAL_H_3D/2, z],
+   [x-GOAL_W/2, GOAL_H_3D/2, z+dirSign*depth],[x+GOAL_W/2, GOAL_H_3D/2, z+dirSign*depth]
+  ].forEach((pos, k) => {
+    dummyP.position.set(...pos); dummyP.updateMatrix();
+    postInst.setMatrixAt(k, dummyP.matrix);
+  });
+  postInst.instanceMatrix.needsUpdate = true;
+  postInst.castShadow = true;
+  scene.add(postInst);
+
+  // Crossbars (2: front + back)
+  const cbGeo = new THREE.CylinderGeometry(r, r, GOAL_W + r*2, 7);
+  const cbInst = new THREE.InstancedMesh(cbGeo, postMat, 2);
+  const dummyCB = new THREE.Object3D();
+  [[x, GOAL_H_3D, z],[x, GOAL_H_3D, z+dirSign*depth]].forEach((pos, k) => {
+    dummyCB.position.set(...pos); dummyCB.rotation.z = Math.PI/2; dummyCB.updateMatrix();
+    cbInst.setMatrixAt(k, dummyCB.matrix);
+  });
+  cbInst.instanceMatrix.needsUpdate = true;
+  scene.add(cbInst);
+
+  // Side top bars
+  const sbGeo = new THREE.CylinderGeometry(r*0.7, r*0.7, depth, 6);
+  const sbInst = new THREE.InstancedMesh(sbGeo, postMat, 2);
+  const dummySB = new THREE.Object3D();
+  [x-GOAL_W/2, x+GOAL_W/2].forEach((ox, k) => {
+    dummySB.position.set(ox, GOAL_H_3D, z + dirSign*depth/2);
+    dummySB.rotation.set(Math.PI/2, 0, 0); dummySB.updateMatrix();
+    sbInst.setMatrixAt(k, dummySB.matrix);
+  });
+  sbInst.instanceMatrix.needsUpdate = true;
+  scene.add(sbInst);
+
+  // Net — 3 transparent planes (back + 2 sides)
+  const netMat = new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.22, side: THREE.DoubleSide, wireframe: false });
+  const backNet = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_W, GOAL_H_3D, 8, 6), netMat);
+  backNet.position.set(x, GOAL_H_3D/2, z+dirSign*depth);
+  scene.add(backNet);
+  [-GOAL_W/2, GOAL_W/2].forEach(ox => {
+    const sn = new THREE.Mesh(new THREE.PlaneGeometry(depth, GOAL_H_3D, 6, 6), netMat);
+    sn.rotation.y = Math.PI/2; sn.position.set(x+ox, GOAL_H_3D/2, z+dirSign*depth/2);
+    scene.add(sn);
+  });
+  // Net wireframe overlay (one plane, cheap)
+  const wfMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, wireframe: true });
+  const wfBack = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_W, GOAL_H_3D, 10, 7), wfMat);
+  wfBack.position.copy(backNet.position);
+  scene.add(wfBack);
+}
+
+// ── BALL ─────────────────────────────────────────────────
+function createBall() {
+  const geo = new THREE.SphereGeometry(0.36, 24, 24);
+  // Procedural black/white soccer ball texture
+  const size = 256;
+  const c2 = document.createElement('canvas');
+  c2.width = c2.height = size;
+  const ctx = c2.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  // Draw pentagon-like patches
+  ctx.fillStyle = '#111111';
+  const patches = [
+    [0,0],[0.5,0],[0,0.5],[0.5,0.5],[0.25,0.25],
+    [0.1,0.75],[0.75,0.1],[0.85,0.65],[0.3,0.85]
+  ];
+  patches.forEach(([px,py]) => {
+    ctx.beginPath();
+    for (let k = 0; k < 5; k++) {
+      const a = (k * 72 - 90) * Math.PI / 180;
+      const ex = px * size + Math.cos(a) * 22;
+      const ey = py * size + Math.sin(a) * 22;
+      k === 0 ? ctx.moveTo(ex, ey) : ctx.lineTo(ex, ey);
+    }
+    ctx.closePath();
+    ctx.fill();
+  });
+  const tex = new THREE.CanvasTexture(c2);
+  const mat = new THREE.MeshPhongMaterial({
+    map: tex,
+    shininess: 120,
+    specular: new THREE.Color(0x888888),
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.position.set(0, 0.36, 0);
+  scene.add(mesh);
+
+  // Shadow blob under ball
+  const shadowGeo = new THREE.CircleGeometry(0.5, 16);
+  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.3, transparent: true });
+  const ballShadow = new THREE.Mesh(shadowGeo, shadowMat);
+  ballShadow.rotation.x = -Math.PI / 2;
+  ballShadow.position.y = 0.01;
+  scene.add(ballShadow);
+
+  return { mesh, vel: new THREE.Vector3(), angVel: new THREE.Vector3(), owner: null, shadowMesh: ballShadow };
+}
+
+// ── PLAYERS ──────────────────────────────────────────────
+const PLAYER_NAMES_HOME = ['Silva','Torres','Müller','Ramos','Kroos','Lewandowski','Modric','Benzema','Messi','Neymar','Kane'];
+const PLAYER_NAMES_AWAY = ['Hart','Dani','Hummels','Boateng','Eriksen','Sterling','Salah','Firmino','Pogba','Griezmann','Mbappé'];
+
+function createPlayer(isHome, idx, teamData) {
+  const shirtColor = parseInt(teamData.colors[isHome ? 0 : 1].replace('#',''), 16);
+  const shortColor = parseInt(teamData.colors[isHome ? 1 : 0].replace('#',''), 16);
+  const group = new THREE.Group();
+
+  const shirtMat = new THREE.MeshLambertMaterial({ color: shirtColor });
+  const shortMat = new THREE.MeshLambertMaterial({ color: shortColor });
+  const skinMat  = new THREE.MeshLambertMaterial({ color: 0xe8c49a });
+  const bootMat  = new THREE.MeshLambertMaterial({ color: 0x111111 });
+  const sockMat  = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const hairMat  = new THREE.MeshLambertMaterial({ color: [0x1a0a00,0x3d2200,0x000000,0xcc9944,0x884411][idx % 5] });
+
+  // BOOTS (2)
+  [-0.18, 0.18].forEach(bx => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.4), bootMat);
+    m.position.set(bx, 0.09, 0.07); m.castShadow = true; group.add(m);
+  });
+  // SOCKS (2, 6-sided)
+  [-0.18, 0.18].forEach(lx => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.44, 6), sockMat);
+    m.position.set(lx, 0.38, 0); group.add(m);
+  });
+  // SHORTS
+  const shorts = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.38, 8), shortMat);
+  shorts.position.y = 0.76; group.add(shorts);
+  // TORSO
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.38, 0.78, 8), shirtMat);
+  body.position.y = 1.33; body.castShadow = true; group.add(body);
+  // ARMS (2)
+  [-1, 1].forEach(s => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.85, 6), shirtMat);
+    m.position.set(s * 0.46, 1.22, 0); m.rotation.z = s * 0.38; group.add(m);
+  });
+  // HEAD
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 7), skinMat);
+  head.position.y = 2.1; head.castShadow = true; group.add(head);
+  // HAIR
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.285, 8, 5, 0, Math.PI*2, 0, Math.PI*0.5), hairMat);
+  hair.position.y = 2.1; group.add(hair);
+
+  // SELECTION RING
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.07, 6, 20), ringMat);
+  ring.rotation.x = -Math.PI/2; ring.position.y = 0.05; group.add(ring);
+  // CALL RING
+  const callMat = new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0 });
+  const callRing = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.09, 6, 20), callMat);
+  callRing.rotation.x = -Math.PI/2; callRing.position.y = 0.1; group.add(callRing);
+  // SHADOW
+  const shadowMesh = new THREE.Mesh(new THREE.CircleGeometry(0.52, 10),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 }));
+  shadowMesh.rotation.x = -Math.PI/2; shadowMesh.position.y = 0.01; group.add(shadowMesh);
+
+  const form = isHome ? HOME_FORMATION : AWAY_FORMATION;
+  const pos  = form[idx] || form[0];
+  group.position.set(pos.x + (Math.random()-0.5)*1.5, 0, pos.z + (Math.random()-0.5)*1.5);
+  scene.add(group);
+
+  return {
+    mesh: group, isHome,
+    vel: new THREE.Vector3(), pos: group.position,
+    hasBall: false, name: (isHome ? PLAYER_NAMES_HOME : PLAYER_NAMES_AWAY)[idx % 11],
+    idx, kicking: false, kickTimer: 0, targetPos: new THREE.Vector3(), stamina: 100,
+    role: idx === 0 ? 'gk' : idx <= 2 ? 'def' : idx === 3 ? 'mid' : 'fwd',
+    baseZ: pos.z, selectionRing: ring, callRing: callRing,
+  };
+}
+
+
+function buildPlayers(homeTeam, awayTeam) {
+  players = [];
+  // 5 home players
+  for (let i = 0; i < 5; i++) players.push(createPlayer(true, i, homeTeam));
+  // 5 away players
+  for (let i = 0; i < 5; i++) players.push(createPlayer(false, i, awayTeam));
+  controlledIdx = 0;
+}
+
+// ── MINIMAP ──────────────────────────────────────────────
+const minimapCanvas = document.getElementById('minimap-canvas');
+const minimapCtx = minimapCanvas.getContext('2d');
+minimapCanvas.width = 140;
+minimapCanvas.height = 90;
+
+function drawMinimap() {
+  const mc = minimapCtx;
+  mc.clearRect(0, 0, 140, 90);
+  mc.fillStyle = '#1a4a1a';
+  mc.fillRect(0, 0, 140, 90);
+  mc.strokeStyle = 'rgba(255,255,255,0.3)';
+  mc.strokeRect(1, 1, 138, 88);
+  mc.strokeRect(50, 1, 40, 20);
+  mc.strokeRect(50, 69, 40, 20);
+  mc.beginPath(); mc.arc(70, 45, 18, 0, Math.PI*2); mc.stroke();
+  mc.strokeRect(1, 44, 138, 1);
+
+  const toMX = x => (x / FIELD_W + 0.5) * 138 + 1;
+  const toMZ = z => (z / FIELD_H + 0.5) * 88 + 1;
+
+  players.forEach((p, i) => {
+    mc.fillStyle = i === controlledIdx ? '#ffd600' : p.isHome ? '#00e676' : '#ff4444';
+    mc.beginPath();
+    mc.arc(toMX(p.pos.x), toMZ(p.pos.z), i === controlledIdx ? 4 : 3, 0, Math.PI*2);
+    mc.fill();
+  });
+
+  if (ball) {
+    mc.fillStyle = '#ffffff';
+    mc.beginPath();
+    mc.arc(toMX(ball.mesh.position.x), toMZ(ball.mesh.position.z), 3, 0, Math.PI*2);
+    mc.fill();
+  }
+}
+
+// ── GAME START ───────────────────────────────────────────
+function startMatch() {
+  if (!selectedTeam) return;
+  matchDuration = settings.matchMinutes * 60;
+  score = { home: 0, away: 0 };
+  matchTimer = 0;
+  stamina = 100;
+  lastGoalTime = -999;
+  
+  // Clear scene
+  while(scene.children.length > 0) scene.remove(scene.children[0]);
+  players = [];
+  
+  buildField();
+  ball = createBall();
+  buildPlayers(selectedTeam, opposingTeam);
+  
+  // Update HUD
+  document.getElementById('hud-home-name').textContent = selectedTeam.abbr;
+  document.getElementById('hud-away-name').textContent = opposingTeam.abbr;
+  document.getElementById('hud-score-h').textContent = '0';
+  document.getElementById('hud-score-a').textContent = '0';
+  
+  matchRunning = true;
+  cameraAngle = Math.PI; // reset camera to look toward +Z
+  gameState = 'playing';
+  callingTimer = 0;
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  
+  document.getElementById('hud').classList.add('visible');
+  document.getElementById('controls-ref').classList.add('visible');
+  document.getElementById('stamina-wrap').classList.add('visible');
+  if (settings.minimap) document.getElementById('minimap').classList.add('visible');
+  
+  setTimeout(() => document.getElementById('controls-ref').classList.remove('visible'), 8000);
+  
+  resize();
+}
+
+function quitMatch() {
+  matchRunning = false;
+  gameState = 'menu';
+  document.getElementById('hud').classList.remove('visible');
+  document.getElementById('minimap').classList.remove('visible');
+  document.getElementById('stamina-wrap').classList.remove('visible');
+  document.getElementById('controls-ref').classList.remove('visible');
+  showScreen('menu-screen');
+}
+
+function pauseGame() {
+  if (!matchRunning) return;
+  matchRunning = false;
+  gameState = 'paused';
+  showPauseScreenOverGame();
+}
+
+function showPauseScreenOverGame() {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.toggle('hidden', s.id !== 'pause-screen');
+  });
+  document.getElementById('pause-screen').style.zIndex = 200;
+}
+
+function resumeGame() {
+  matchRunning = true;
+  gameState = 'playing';
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+}
+
+function endMatch() {
+  matchRunning = false;
+  gameState = 'menu';
+  document.getElementById('hud').classList.remove('visible');
+  document.getElementById('minimap').classList.remove('visible');
+  document.getElementById('stamina-wrap').classList.remove('visible');
+  
+  document.getElementById('result-teams').textContent = `${selectedTeam.name} vs ${opposingTeam.name}`;
+  document.getElementById('result-score').textContent = `${score.home} – ${score.away}`;
+  const msg = document.getElementById('result-msg');
+  if (score.home > score.away) { msg.textContent = 'VICTORY!'; msg.className = 'result-msg win'; }
+  else if (score.home < score.away) { msg.textContent = 'DEFEAT'; msg.className = 'result-msg loss'; }
+  else { msg.textContent = 'DRAW'; msg.className = 'result-msg draw'; }
+  
+  showScreen('result-screen');
+}
+
+// ── KEYBOARD EVENTS ──────────────────────────────────────
+function onKeyDown(e) {
+  if (e.code === 'Escape') {
+    if (gameState === 'playing') pauseGame();
+    else if (gameState === 'paused') resumeGame();
+  }
+  if (gameState !== 'playing') return;
+  if (e.code === 'Tab') { e.preventDefault(); switchPlayer(); }
+  if (e.code === 'Space') { e.preventDefault(); tryShoot(); }
+  if (e.code === 'KeyE') tryPass();
+  if (e.code === 'KeyQ') tryLobPass();
+  if (e.code === 'KeyF') callForBall();  // NEW: call for ball
+}
+
+function switchPlayer() {
+  // Smart switch: pick the home player closest to ball who isn't currently controlled
+  const bPos = ball.mesh.position;
+  let best = -1, bestDist = 9999;
+  players.forEach((p, i) => {
+    if (!p.isHome || i === controlledIdx) return;
+    const d = p.pos.distanceTo(bPos);
+    if (d < bestDist) { bestDist = d; best = i; }
+  });
+  if (best !== -1) controlledIdx = best;
+}
+
+function tryShoot() {
+  const p = players[controlledIdx];
+  if (!p) return;
+  const dist = ball.mesh.position.distanceTo(p.pos);
+  if (dist < 3.5) {
+    const goalZ = FIELD_H / 2; // home attacks +Z
+    // Aim at a goal corner (low/high, left/right)
+    const cornerX = (Math.random() < 0.5 ? -1 : 1) * (GOAL_W / 2 - 0.7);
+    const cornerY = 0.5 + Math.random() * 1.6;
+    const target = new THREE.Vector3(cornerX, cornerY, goalZ);
+    const dir = target.clone().sub(p.pos).normalize();
+    const distToGoal = Math.abs(p.pos.z - goalZ);
+    const power = Math.max(16, 26 - distToGoal * 0.25);
+    ball.vel.copy(dir.multiplyScalar(power));
+    ball.owner = null;
+    p.hasBall = false;
+    p.kicking = true;
+    p.kickTimer = 0.35;
+    stamina = Math.max(0, stamina - 8);
+  }
+}
+
+function tryPass() {
+  const p = players[controlledIdx];
+  if (!p || !p.hasBall) return;
+  const t = bestPassTarget(p, 'home');
+  if (!t) return;
+  const dir = t.pos.clone().sub(p.pos).normalize();
+  const passSpd = Math.min(10 + t.pos.distanceTo(p.pos) * 0.6, 22);
+  dir.y = 0.04;
+  ball.vel.copy(dir.multiplyScalar(passSpd));
+  ball.owner = null;
+  p.hasBall = false;
+}
+
+function tryLobPass() {
+  const p = players[controlledIdx];
+  if (!p || !p.hasBall) return;
+  const homePlayers = players.filter((pl, i) => pl.isHome && i !== controlledIdx);
+  if (homePlayers.length === 0) return;
+  let target = homePlayers.reduce((a, b) => {
+    const goalZ = FIELD_H/2; // home attacks +Z
+    return Math.abs(b.pos.z - goalZ) < Math.abs(a.pos.z - goalZ) ? b : a;
+  });
+  const dir = target.pos.clone().sub(p.pos).normalize();
+  dir.y = 0.6;
+  ball.vel.copy(dir.multiplyScalar(14));
+  ball.owner = null;
+  p.hasBall = false;
+}
+
+// ── CALL FOR BALL ────────────────────────────────────────
+let callingTimer = 0;
+
+function callForBall() {
+  const me = players[controlledIdx];
+  if (!me || me.hasBall) return;
+  
+  // Find any teammate with the ball
+  const ballHolder = players.find((p, i) => p.isHome && i !== controlledIdx && p.hasBall && ball.owner === i);
+  
+  if (ballHolder) {
+    // Immediate pass to me
+    const dir = me.pos.clone().sub(ballHolder.pos).normalize();
+    dir.y = 0.04;
+    const passSpeed = 15 + me.pos.distanceTo(ballHolder.pos) * 0.2;
+    ball.vel.copy(dir.multiplyScalar(passSpeed));
+    ball.owner = null;
+    ballHolder.hasBall = false;
+    callingTimer = 1.2;
+    showCallIndicator();
+  } else {
+    // Flash indicator even if no one has ball (calling for it)
+    callingTimer = 0.8;
+    showCallIndicator();
+  }
+}
+
+function showCallIndicator() {
+  const me = players[controlledIdx];
+  if (!me || !me.callRing) return;
+  me.callRing.material.opacity = 0.9;
+  // Flash the HUD
+  const poss = document.getElementById('hud-possession');
+  const orig = poss.textContent;
+  poss.textContent = '📣 CALLING FOR BALL!';
+  poss.style.color = '#ffd600';
+  setTimeout(() => { poss.style.color = '#00e676'; }, 1000);
+}
+
+// ── PHYSICS & AI ─────────────────────────────────────────
+const FRICTION = 0.97;
+const GRAVITY = 0.5;
+const BALL_RADIUS = 0.36;
+const PLAYER_SPEED = 10;
+const AI_SPEED = 7;
+const HALF_W = FIELD_W / 2 - 0.5;
+const HALF_H = FIELD_H / 2 - 0.5;
+
+let clock = { prev: performance.now() };
+
+function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+
+function updateBall(dt) {
+  if (!ball) return;
+  
+  const owner = ball.owner !== null ? players[ball.owner] : null;
+  
+  if (owner) {
+    // Ball sticks near owner
+    const ahead = new THREE.Vector3(
+      Math.sin(owner.mesh.rotation.y) * 0.8,
+      0,
+      Math.cos(owner.mesh.rotation.y) * 0.8
+    );
+    ball.mesh.position.copy(owner.pos).add(ahead);
+    ball.mesh.position.y = BALL_RADIUS;
+    ball.vel.set(0, 0, 0);
+    possession = owner.isHome ? 'home' : 'away';
+  } else {
+    // Physics
+    ball.vel.y -= GRAVITY * dt;
+    ball.vel.x *= (1 - (1 - FRICTION) * dt * 60);
+    ball.vel.z *= (1 - (1 - FRICTION) * dt * 60);
+    
+    ball.mesh.position.x += ball.vel.x * dt;
+    ball.mesh.position.y += ball.vel.y * dt;
+    ball.mesh.position.z += ball.vel.z * dt;
+
+    // Ground
+    if (ball.mesh.position.y <= BALL_RADIUS) {
+      ball.mesh.position.y = BALL_RADIUS;
+      ball.vel.y = Math.abs(ball.vel.y) * 0.4;
+      ball.vel.x *= 0.85;
+      ball.vel.z *= 0.85;
+      if (Math.abs(ball.vel.y) < 0.5) ball.vel.y = 0;
+    }
+    
+    // Boundaries
+    if (ball.mesh.position.x > HALF_W) { ball.mesh.position.x = HALF_W; ball.vel.x *= -0.5; }
+    if (ball.mesh.position.x < -HALF_W) { ball.mesh.position.x = -HALF_W; ball.vel.x *= -0.5; }
+    if (ball.mesh.position.z > HALF_H) { ball.mesh.position.z = HALF_H; ball.vel.z *= -0.5; }
+    if (ball.mesh.position.z < -HALF_H) { ball.mesh.position.z = -HALF_H; ball.vel.z *= -0.5; }
+
+    // Roll rotation
+    ball.mesh.rotation.x += ball.vel.z * dt * 2;
+    ball.mesh.rotation.z -= ball.vel.x * dt * 2;
+    
+    // Goal check
+    checkGoal();
+    
+    // Player collision / pickup
+    if (matchTimer - lastGoalTime > 2) {
+      players.forEach((p, i) => {
+        const dist = ball.mesh.position.distanceTo(p.pos);
+        if (dist < 1.2) {
+          // Can pick up
+          if (p.kickTimer <= 0) {
+            ball.owner = i;
+            p.hasBall = true;
+            players.forEach((pp, ii) => { if (ii !== i) pp.hasBall = false; });
+            // Auto-switch to home player that just received ball
+            if (p.isHome && i !== controlledIdx) {
+              controlledIdx = i;
+            }
+          }
+        }
+      });
+    }
+  }
+}
+
+function checkGoal() {
+  if (!ball || matchTimer - lastGoalTime < 2) return;
+  const bz = ball.mesh.position.z;
+  const bx = ball.mesh.position.x;
+  const by = ball.mesh.position.y;
+  
+  // Home attacks +Z → scores at +Z goal
+  if (bz > FIELD_H/2 - 0.5 && Math.abs(bx) < GOAL_W/2 && by < GOAL_H_3D) {
+    score.home++;
+    showGoal(players[controlledIdx]?.name + ' (' + selectedTeam.abbr + ')');
+    resetAfterGoal();
+  }
+  // Away attacks -Z → scores at -Z goal
+  if (bz < -FIELD_H/2 + 0.5 && Math.abs(bx) < GOAL_W/2 && by < GOAL_H_3D) {
+    score.away++;
+    showGoal(opposingTeam.abbr);
+    resetAfterGoal();
+  }
+}
+
+function showGoal(scorer) {
+  const banner = document.getElementById('goal-banner');
+  document.getElementById('goal-scorer-name').textContent = scorer.toUpperCase();
+  banner.classList.add('show');
+  document.getElementById('hud-score-h').textContent = score.home;
+  document.getElementById('hud-score-a').textContent = score.away;
+  setTimeout(() => banner.classList.remove('show'), 3000);
+}
+
+// Formation positions for 5-player (1-2-1-1): GK, DefL, DefR, Mid, Fwd
+// Home starts at -Z half, attacks +Z. Away starts at +Z half, attacks -Z
+const HOME_FORMATION = [
+  { x: 0,    z: -48 }, // GK
+  { x: -12,  z: -35 }, // Def L
+  { x:  12,  z: -35 }, // Def R
+  { x:   0,  z: -18 }, // Mid
+  { x:   0,  z:  -5 }, // Fwd
+];
+const AWAY_FORMATION = [
+  { x: 0,    z: 48  }, // GK
+  { x:  12,  z: 35  }, // Def L (mirror)
+  { x: -12,  z: 35  }, // Def R (mirror)
+  { x:   0,  z: 18  }, // Mid
+  { x:   0,  z:  5  }, // Fwd
+];
+
+function resetAfterGoal() {
+  lastGoalTime = matchTimer;
+  ball.mesh.position.set(0, BALL_RADIUS, 0);
+  ball.vel.set(0, 0, 0);
+  ball.owner = null;
+  players.forEach(p => { p.hasBall = false; });
+  players.forEach((p, i) => {
+    const form = p.isHome ? HOME_FORMATION : AWAY_FORMATION;
+    const slot = p.isHome ? i : i - 5;
+    const pos = form[slot] || form[0];
+    p.mesh.position.set(pos.x + (Math.random()-0.5)*2, 0, pos.z + (Math.random()-0.5)*2);
+    p.vel.set(0, 0, 0);
+  });
+  controlledIdx = 3; // switch to midfielder after goal (good starting position)
+}
+
+function updatePlayerControl(dt) {
+  const p = players[controlledIdx];
+  if (!p) return;
+  
+  const isSprinting = keys['ShiftLeft'] || keys['ShiftRight'];
+  const speed = isSprinting ? PLAYER_SPEED * 1.6 * settings.gameSpeed : PLAYER_SPEED * settings.gameSpeed;
+  
+  let moveX = 0, moveZ = 0;
+  if (keys['KeyW'] || keys['ArrowUp'])    moveZ = +1;   // FORWARD = toward opponent goal (+Z)
+  if (keys['KeyS'] || keys['ArrowDown'])  moveZ = -1;   // BACKWARD
+  if (keys['KeyA'] || keys['ArrowLeft'])  moveX = -1;
+  if (keys['KeyD'] || keys['ArrowRight']) moveX = +1;
+  
+  if (moveX !== 0 || moveZ !== 0) {
+    const len = Math.sqrt(moveX*moveX + moveZ*moveZ);
+    p.vel.x = (moveX / len) * speed;
+    p.vel.z = (moveZ / len) * speed;
+    p.mesh.rotation.y = Math.atan2(moveX, moveZ) + Math.PI;
+    
+    if (isSprinting) stamina = Math.max(0, stamina - dt * 15);
+  } else {
+    p.vel.x *= 0.85;
+    p.vel.z *= 0.85;
+    stamina = Math.min(100, stamina + dt * 8);
+  }
+  
+  if (stamina <= 0) { p.vel.x *= 0.4; p.vel.z *= 0.4; }
+  
+  p.pos.x += p.vel.x * dt;
+  p.pos.z += p.vel.z * dt;
+  p.pos.x = clamp(p.pos.x, -HALF_W, HALF_W);
+  p.pos.z = clamp(p.pos.z, -HALF_H, HALF_H);
+  p.pos.y = 0;
+  
+  // Stamina bar
+  const fill = document.getElementById('stamina-fill');
+  fill.style.width = stamina + '%';
+  fill.style.background = stamina > 50 ? '#00e676' : stamina > 20 ? '#ffd600' : '#ff1744';
+  
+  if (p.kickTimer > 0) p.kickTimer -= dt;
+}
+
+// ══════════════════════════════════════════════════════════
+//  SMART AI — State machine with tactics, marking, GK saves
+// ══════════════════════════════════════════════════════════
+
+// Predict where ball will be in `t` seconds (ignores gravity for ground prediction)
+function predictBallPos(t) {
+  const bv = ball.vel;
+  const bp = ball.mesh.position;
+  return new THREE.Vector3(
+    bp.x + bv.x * t * FRICTION,
+    0,
+    bp.z + bv.z * t * FRICTION
+  );
+}
+
+// Find the best pass target — most advanced teammate with clear lane
+function bestPassTarget(passer, team) {
+  const goalZ = team === 'home' ? FIELD_H/2 : -FIELD_H/2;
+  const sign = team === 'home' ? 1 : -1;
+  const teammates = players.filter(pl => pl.isHome === (team === 'home') && pl !== passer);
+  if (!teammates.length) return null;
+
+  // Score each teammate: advancement toward goal + openness
+  let best = null, bestScore = -999;
+  teammates.forEach(t => {
+    const advancement = (t.pos.z - passer.pos.z) * sign; // positive = more advanced
+    // Check no opponent close to passing lane
+    const opponents = players.filter(pl => pl.isHome !== (team === 'home'));
+    const laneBlocked = opponents.some(opp => {
+      const toTarget = t.pos.clone().sub(passer.pos);
+      const toOpp = opp.pos.clone().sub(passer.pos);
+      const proj = toOpp.dot(toTarget.clone().normalize());
+      if (proj < 0 || proj > toTarget.length()) return false;
+      const perpDist = opp.pos.distanceTo(
+        passer.pos.clone().add(toTarget.clone().normalize().multiplyScalar(proj))
+      );
+      return perpDist < 3;
+    });
+    const distToGoal = Math.abs(t.pos.z - goalZ);
+    const score = advancement * 2 + (laneBlocked ? -20 : 10) - distToGoal * 0.3;
+    if (score > bestScore) { bestScore = score; best = t; }
+  });
+  return best;
+}
+
+// Shoot aiming at goal corners
+function aiShoot(p) {
+  const isHome = p.isHome;
+  const goalZ = isHome ? FIELD_H/2 : -FIELD_H/2;
+  const sign = isHome ? 1 : -1;
+  // Pick corner to aim at (avoid GK side if we can infer)
+  const corner = Math.random() < 0.5 ? -GOAL_W/2 + 0.8 : GOAL_W/2 - 0.8;
+  const target = new THREE.Vector3(corner, 0.6 + Math.random() * 1.2, goalZ);
+  const dir = target.clone().sub(p.pos).normalize();
+  const distToGoal = Math.abs(p.pos.z - goalZ);
+  const power = Math.max(16, 26 - distToGoal * 0.3);
+  ball.vel.copy(dir.multiplyScalar(power));
+  ball.owner = null;
+  p.hasBall = false;
+  p.kickTimer = 0.4;
+}
+
+// Tackle/steal ball
+function tryTackle(p, i) {
+  if (ball.owner === null) return false;
+  const holder = players[ball.owner];
+  if (!holder || holder.isHome === p.isHome) return false;
+  const dist = p.pos.distanceTo(holder.pos);
+  if (dist < 1.4) {
+    // Tackle success chance
+    const diffFactor = settings.difficulty === 'hard' ? 0.72 : settings.difficulty === 'medium' ? 0.55 : 0.40;
+    if (Math.random() < diffFactor) {
+      ball.owner = i;
+      holder.hasBall = false;
+      p.hasBall = true;
+      p.kickTimer = 0.15;
+    } else {
+      // Foul/failed — push ball away a bit
+      ball.owner = null;
+      holder.hasBall = false;
+      ball.vel.set((Math.random()-0.5)*8, 2, (Math.random()-0.5)*8);
+    }
+    return true;
+  }
+  return false;
+}
+
+function updateAIPlayers(dt) {
+  const diff = settings.difficulty;
+  const diffSpeed    = diff === 'hard' ? 1.15 : diff === 'medium' ? 0.95 : 0.72;
+  const diffReact    = diff === 'hard' ? 0.95 : diff === 'medium' ? 0.75 : 0.50; // reaction quality
+  const diffPress    = diff === 'hard' ? 14   : diff === 'medium' ? 10   : 7;    // press radius
+  const diffShootZone= diff === 'hard' ? 28   : diff === 'medium' ? 22   : 18;   // shoot from distance
+
+  const bPos   = ball.mesh.position.clone(); bPos.y = 0;
+  const bVel   = ball.vel.clone();
+  const bSpeed = new THREE.Vector2(bVel.x, bVel.z).length();
+
+  // Who has ball?
+  const holderIdx  = ball.owner;
+  const holderTeam = holderIdx !== null ? (players[holderIdx].isHome ? 'home' : 'away') : null;
+
+  // Precompute: nearest player to ball on each team (for pressing duty)
+  let nearestHome = null, nearestHomeD = 9999;
+  let nearestAway = null, nearestAwayD = 9999;
+  players.forEach((p, i) => {
+    if (i === controlledIdx) return;
+    const d = p.pos.distanceTo(bPos);
+    if (p.isHome && d < nearestHomeD) { nearestHomeD = d; nearestHome = i; }
+    if (!p.isHome && d < nearestAwayD) { nearestAwayD = d; nearestAway = i; }
+  });
+
+  // Precompute: assign defenders to mark attackers (1-to-1)
+  // home defs mark away fwds/mids, away defs mark home fwds/mids
+  const homeDefs  = players.map((p,i)=>({p,i})).filter(x=>x.p.isHome && x.p.role==='def' && x.i!==controlledIdx);
+  const awayFwds  = players.filter(p=>!p.isHome && (p.role==='fwd'||p.role==='mid'));
+  const awayDefs  = players.map((p,i)=>({p,i})).filter(x=>!x.p.isHome && x.p.role==='def');
+  const homeFwds  = players.filter(p=>p.isHome && (p.role==='fwd'||p.role==='mid') && players.indexOf(p)!==controlledIdx);
+
+  const markingHome = {}; // defIdx -> attacker player ref
+  homeDefs.forEach((d,k) => { if (awayFwds[k]) markingHome[d.i] = awayFwds[k]; });
+  const markingAway = {};
+  awayDefs.forEach((d,k) => { if (homeFwds[k]) markingAway[d.i] = homeFwds[k]; });
+
+  players.forEach((p, i) => {
+    if (i === controlledIdx) return; // player controls this one
+    if (p.kickTimer > 0) { p.kickTimer -= dt; }
+
+    const isHome    = p.isHome;
+    const teamStr   = isHome ? 'home' : 'away';
+    const ownGoalZ  = isHome ? -FIELD_H/2 : FIELD_H/2;   // goal we defend
+    const attGoalZ  = isHome ?  FIELD_H/2 : -FIELD_H/2;  // goal we attack
+    const attSign   = isHome ? 1 : -1;                    // positive = toward opp goal
+    const hasBall   = ball.owner === i;
+    const teamHasBall = holderTeam === teamStr;
+    const oppHasBall  = holderTeam !== null && holderTeam !== teamStr;
+    const ballInOwnHalf = (isHome ? bPos.z < 0 : bPos.z > 0);
+    const distToBall = p.pos.distanceTo(bPos);
+
+    const spd = AI_SPEED * diffSpeed * settings.gameSpeed;
+    let target = new THREE.Vector3();
+    let moveSpd = spd;
+
+    // ── GK ──────────────────────────────────────────────
+    if (p.role === 'gk') {
+      const gkLineZ = ownGoalZ + attSign * 3; // GK's default Z
+
+      // Is ball heading toward our goal?
+      const ballHeadingToUs = attSign === 1 ? bVel.z < -2 : bVel.z > 2;
+      const ballDangerZ = attSign === 1 ? bPos.z < -25 : bPos.z > 25;
+      const interceptPt = predictBallPos(0.8);
+
+      if (ballDangerZ && ballHeadingToUs && bSpeed > 3) {
+        // Dive toward predicted interception
+        target.set(clamp(interceptPt.x, -GOAL_W/2 - 1, GOAL_W/2 + 1), 0, gkLineZ);
+        moveSpd = spd * 1.6;
+      } else if (ballDangerZ) {
+        // Ball in danger zone — spread wide to cover
+        target.set(clamp(bPos.x * 0.6, -GOAL_W/2, GOAL_W/2), 0, gkLineZ);
+        moveSpd = spd * 1.2;
+      } else {
+        // Normal positioning — track ball X loosely
+        target.set(clamp(bPos.x * 0.25, -GOAL_W*0.35, GOAL_W*0.35), 0, gkLineZ);
+      }
+
+      // GK comes out to clear if ball is very close
+      if (distToBall < 6 && ballInOwnHalf && !teamHasBall) {
+        target.copy(bPos); target.y = 0;
+        moveSpd = spd * 1.5;
+      }
+    }
+
+    // ── DEFENDER ────────────────────────────────────────
+    else if (p.role === 'def') {
+      const markedPlayer = isHome ? markingHome[i] : markingAway[i];
+      const defLineZ = ownGoalZ + attSign * 18; // defensive line Z
+
+      if (hasBall) {
+        // Defender with ball — look for safe pass upfield
+        // handled below in "has ball" block
+        target.copy(bPos); target.y = 0;
+      } else if (oppHasBall) {
+        // DEFEND: mark assigned attacker OR press if nearest to ball
+        const isPressPlayer = (isHome ? nearestHome : nearestAway) === i;
+        if (isPressPlayer && distToBall < diffPress) {
+          // This defender presses the ball
+          target.copy(bPos); target.y = 0;
+          moveSpd = spd * 1.15;
+        } else if (markedPlayer) {
+          // Track marked attacker — stay goal-side (between attacker and own goal)
+          const markPos = markedPlayer.pos;
+          const toGoal = new THREE.Vector3(0, 0, ownGoalZ).sub(markPos).normalize();
+          target.set(
+            markPos.x + toGoal.x * 2,
+            0,
+            clamp(markPos.z + toGoal.z * 2, Math.min(ownGoalZ+2, defLineZ-5), defLineZ)
+          );
+        } else {
+          // Hold defensive line
+          const spreadX = (p.idx === 1 ? -12 : 12);
+          target.set(spreadX, 0, defLineZ);
+        }
+      } else if (teamHasBall) {
+        // ATTACK support — push up but stay behind midfield
+        const supportZ = ownGoalZ + attSign * 30;
+        const spreadX = (p.idx === 1 ? -14 : 14);
+        target.set(spreadX, 0, clamp(bPos.z - attSign * 10, ownGoalZ + attSign * 10, supportZ));
+      } else {
+        // Ball loose — hold shape
+        const spreadX = (p.idx === 1 ? -12 : 12);
+        target.set(spreadX, 0, defLineZ);
+      }
+    }
+
+    // ── MIDFIELDER ──────────────────────────────────────
+    else if (p.role === 'mid') {
+      const midLineZ = ownGoalZ + attSign * 38; // center midfield
+
+      if (hasBall) {
+        // handled below
+        target.copy(bPos); target.y = 0;
+      } else if (oppHasBall) {
+        // Press or hold shape
+        const isPressPlayer = (isHome ? nearestHome : nearestAway) === i;
+        if (isPressPlayer && distToBall < diffPress + 4) {
+          target.copy(bPos); target.y = 0;
+          moveSpd = spd * 1.1;
+        } else {
+          // Cut off passing lanes — intercept predicted ball
+          const intPt = predictBallPos(0.5);
+          const midTarget = new THREE.Vector3(
+            clamp(intPt.x * 0.6, -20, 20), 0, midLineZ
+          );
+          target.copy(midTarget);
+        }
+      } else if (teamHasBall) {
+        // Create passing triangle — get open in space
+        const holderPos = holderIdx !== null ? players[holderIdx].pos : bPos;
+        // Move into available pocket — diagonal to advance
+        const pocketX = (holderPos.x > 0 ? -10 : 10);
+        const pocketZ = clamp(holderPos.z + attSign * 12, ownGoalZ + attSign * 20, attGoalZ - attSign * 20);
+        target.set(pocketX, 0, pocketZ);
+      } else {
+        target.set(0, 0, midLineZ);
+      }
+    }
+
+    // ── FORWARD ─────────────────────────────────────────
+    else if (p.role === 'fwd') {
+      const fwdLineZ = attGoalZ - attSign * 15; // default forward position
+
+      if (hasBall) {
+        // handled below
+        target.copy(bPos); target.y = 0;
+      } else if (oppHasBall) {
+        // Press from front — cut off GK/def pass options
+        const opp = players.find(pl => pl.isHome !== isHome && pl.role === 'gk');
+        if (opp && distToBall > 15) {
+          // Press the centre, cut off clearances
+          target.set(clamp(bPos.x * 0.4, -15, 15), 0, fwdLineZ);
+        } else {
+          target.copy(bPos); target.y = 0;
+        }
+        moveSpd = spd * 0.85;
+      } else if (teamHasBall) {
+        // Make a RUN — diagonal into space behind defence
+        const holderPos = holderIdx !== null ? players[holderIdx].pos : bPos;
+        // Alternate runs left/right based on idx
+        const runX = (i % 2 === 0 ? 1 : -1) * (10 + Math.sin(matchTimer * 0.3 + i) * 8);
+        const runZ = clamp(holderPos.z + attSign * 18, ownGoalZ + attSign * 30, attGoalZ - attSign * 4);
+        target.set(runX, 0, runZ);
+        moveSpd = spd * 1.1; // sprint into space
+      } else {
+        // Hover near opponent's last third
+        const hoverZ = attGoalZ - attSign * 20;
+        target.set((i % 2 === 0 ? 8 : -8), 0, hoverZ);
+      }
+    }
+
+    // ── MOVE TOWARD TARGET ──────────────────────────────
+    const dir = target.clone().sub(p.pos);
+    const dist = dir.length();
+    if (dist > 0.4) {
+      dir.normalize();
+      p.vel.x = dir.x * moveSpd;
+      p.vel.z = dir.z * moveSpd;
+      p.mesh.rotation.y = Math.atan2(dir.x, dir.z) + Math.PI;
+    } else {
+      p.vel.x *= 0.6;
+      p.vel.z *= 0.6;
+    }
+    p.pos.x += p.vel.x * dt;
+    p.pos.z += p.vel.z * dt;
+    p.pos.x = clamp(p.pos.x, -HALF_W, HALF_W);
+    p.pos.z = clamp(p.pos.z, -HALF_H, HALF_H);
+    p.pos.y = 0;
+
+    // ── TACKLE ──────────────────────────────────────────
+    if (!hasBall && p.kickTimer <= 0) {
+      tryTackle(p, i);
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  HAS BALL — decide: shoot, pass, or dribble
+    // ══════════════════════════════════════════════════════
+    if (hasBall && ball.owner === i && p.kickTimer <= 0) {
+      const distToGoal = Math.abs(p.pos.z - attGoalZ);
+
+      // 1) SHOOT if in zone and chance lines up
+      if (distToGoal < diffShootZone && Math.abs(p.pos.x) < GOAL_W * 2.5) {
+        // Shoot with probability per frame (higher = more aggressive)
+        const shootChance = dt * diffReact * (distToGoal < 15 ? 3.5 : distToGoal < 22 ? 1.8 : 0.6) * settings.gameSpeed;
+        if (Math.random() < shootChance) {
+          aiShoot(p);
+          return;
+        }
+      }
+
+      // 2) PASS — find best teammate if under pressure OR there's a better option
+      const nearestOpp = players
+        .filter(pl => pl.isHome !== isHome)
+        .reduce((a, b) => b.pos.distanceTo(p.pos) < a.pos.distanceTo(p.pos) ? b : a, players.find(pl => pl.isHome !== isHome));
+      const underPressure = nearestOpp && nearestOpp.pos.distanceTo(p.pos) < 5;
+      const passChance = dt * diffReact * (underPressure ? 5 : 1.2) * settings.gameSpeed;
+
+      if (Math.random() < passChance) {
+        const passTarget = bestPassTarget(p, teamStr);
+        if (passTarget) {
+          const pDir = passTarget.pos.clone().sub(p.pos).normalize();
+          const passSpd = 12 + passTarget.pos.distanceTo(p.pos) * 0.5;
+          pDir.y = 0.04;
+          ball.vel.copy(pDir.multiplyScalar(Math.min(passSpd, 22)));
+          ball.owner = null;
+          p.hasBall = false;
+          p.kickTimer = 0.3;
+          return;
+        }
+      }
+
+      // 3) DRIBBLE — push ball forward a little faster
+      // (just keep ball and move; movement is handled above)
+    }
+  });
+}
+
+// ── CAMERA ───────────────────────────────────────────────
+let cameraAngle = Math.PI; // Start looking toward +Z (opponent goal for home)
+const cameraLerpFactor = 0.06;
+
+function updateCamera(dt) {
+  const p = players[controlledIdx];
+  if (!p) return;
+  
+  const zoom = settings.cameraZoom;
+  const targetPos = p.pos.clone();
+  
+  // Camera angle: follows player velocity, defaults to looking toward opponent goal
+  const moveDir = p.vel.clone();
+  if (moveDir.length() > 0.8) {
+    const angle = Math.atan2(moveDir.x, moveDir.z);
+    cameraAngle += (angle - cameraAngle) * 0.08;
+  }
+  
+  // Position camera BEHIND player (opposite of movement direction)
+  const behindDist = zoom * 0.55;
+  const camX = targetPos.x - Math.sin(cameraAngle) * behindDist;
+  const camZ = targetPos.z - Math.cos(cameraAngle) * behindDist;
+  const camY = 10 + zoom * 0.35;
+  
+  camera.position.x += (camX - camera.position.x) * cameraLerpFactor;
+  camera.position.y += (camY - camera.position.y) * cameraLerpFactor;
+  camera.position.z += (camZ - camera.position.z) * cameraLerpFactor;
+  
+  // Look slightly ahead of player toward ball
+  const lookTarget = targetPos.clone().lerp(ball.mesh.position, 0.2);
+  lookTarget.y = 0.5;
+  camera.lookAt(lookTarget);
+}
+
+// ── MATCH TIMER ──────────────────────────────────────────
+function updateTimer(dt) {
+  matchTimer += dt * settings.gameSpeed;
+  const remaining = Math.max(0, matchDuration - matchTimer);
+  const minutes = Math.floor(remaining / 60);
+  const seconds = Math.floor(remaining % 60);
+  document.getElementById('hud-time').textContent = 
+    String(minutes).padStart(2,'0') + ':' + String(seconds).padStart(2,'0');
+  document.getElementById('hud-possession').textContent = 
+    possession.toUpperCase() + ' POSSESSION · ' + 
+    (selectedTeam?.abbr || 'HOME') + ' ' + score.home + ' – ' + score.away + ' ' + (opposingTeam?.abbr || 'AWAY');
+  
+  if (matchTimer >= matchDuration) {
+    endMatch();
+  }
+}
+
+// ── ANIMATED LEGS + RINGS ────────────────────────────────
+function animatePlayers(dt) {
+  const now = performance.now();
+  callingTimer = Math.max(0, callingTimer - dt);
+
+  players.forEach((p, i) => {
+    const speed = Math.sqrt(p.vel.x*p.vel.x + p.vel.z*p.vel.z);
+    
+    // Running animation — swing socks (children[2] = sockL, [3] = sockR)
+    if (speed > 0.5) {
+      const t = now * 0.005 * (speed / PLAYER_SPEED);
+      const sockL = p.mesh.children[2]; // left sock
+      const sockR = p.mesh.children[3]; // right sock
+      if (sockL) sockL.rotation.x = Math.sin(t) * 0.55;
+      if (sockR) sockR.rotation.x = Math.sin(t + Math.PI) * 0.55;
+      p.mesh.position.y = Math.abs(Math.sin(t * 2)) * 0.07;
+    } else {
+      p.mesh.position.y = 0;
+    }
+
+    // Selection ring — controlled player glows green
+    if (p.selectionRing) {
+      const isControlled = i === controlledIdx;
+      if (isControlled) {
+        p.selectionRing.material.color.setHex(p.hasBall ? 0xffd600 : 0x00ff88);
+        p.selectionRing.material.opacity = 0.7 + Math.sin(now * 0.005) * 0.2;
+      } else if (p.isHome) {
+        p.selectionRing.material.color.setHex(0x44aaff);
+        p.selectionRing.material.opacity = p.hasBall ? 0.6 : 0;
+      } else {
+        p.selectionRing.material.opacity = 0;
+      }
+    }
+
+    // Call ring
+    if (p.callRing) {
+      if (i === controlledIdx && callingTimer > 0) {
+        p.callRing.material.opacity = (Math.sin(now * 0.015) * 0.5 + 0.5) * 0.9;
+        p.callRing.scale.setScalar(1 + Math.sin(now * 0.015) * 0.2);
+      } else {
+        p.callRing.material.opacity = 0;
+      }
+    }
+  });
+
+  // Update ball shadow (children[8] would be shadowMesh but ball has its own)
+  if (ball && ball.shadowMesh) {
+    ball.shadowMesh.position.x = ball.mesh.position.x;
+    ball.shadowMesh.position.z = ball.mesh.position.z;
+    const s = Math.max(0.3, 1 - ball.mesh.position.y * 0.05);
+    ball.shadowMesh.scale.setScalar(s);
+    ball.shadowMesh.material.opacity = 0.28 * s;
+  }
+}
+
+// ── MAIN LOOP — capped at 60 FPS ──────────────────────────
+let frameCount = 0;
+const TARGET_FPS = 60;
+const FRAME_MIN_MS = 1000 / TARGET_FPS;
+
+function gameLoop(now) {
+  requestAnimationFrame(gameLoop);
+  
+  const elapsed = now - clock.prev;
+  if (elapsed < FRAME_MIN_MS - 0.5) return; // skip frame if too soon
+  
+  const dt = Math.min(elapsed / 1000, 0.05);
+  clock.prev = now;
+  frameCount++;
+  
+  if (matchRunning && gameState === 'playing') {
+    updatePlayerControl(dt);
+    updateAIPlayers(dt);
+    updateBall(dt);
+    updateCamera(dt);
+    updateTimer(dt);
+    // Animate every frame but minimap only every 4 frames (not visible detail loss)
+    animatePlayers(dt);
+    if (settings.minimap && frameCount % 4 === 0) drawMinimap();
+  }
+  
+  renderer.render(scene, camera);
+}
+
+// ── RESIZE ───────────────────────────────────────────────
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Initial camera — behind home team at -Z, looking toward center
+camera.position.set(0, 25, -55);
+camera.lookAt(0, 0, 0);
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
